@@ -1,0 +1,20 @@
+# Build output
+/StandYouUp.app/
+/.build/
+*.o
+*.swiftmodule
+
+# SwiftPM
+/.swiftpm/
+Package.resolved
+
+# Xcode (if anyone opens the package in Xcode)
+/*.xcodeproj
+xcuserdata/
+DerivedData/
+
+# macOS
+.DS_Store
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json

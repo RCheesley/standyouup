@@ -1,0 +1,121 @@
+# StandYouUp
+
+<img src="Media/icon.png" alt="StandYouUp icon" width="96" align="right">
+
+[![CI](https://github.com/rcheesley/standyouup/actions/workflows/ci.yml/badge.svg)](https://github.com/rcheesley/standyouup/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+![macOS 13+](https://img.shields.io/badge/macOS-13%2B-black?logo=apple)
+
+A tiny native macOS menu-bar app that makes you stand up on a schedule. Every
+hour (configurable) it throws a **full-screen overlay across all your displays**
+— above the menu bar and even over full-screen apps — with a verse from the
+Dhammapada, telling you to stand up. It won't clear until you act, then it
+reminds you when you can sit down again.
+
+No Dock icon, no window clutter — it lives quietly in the menu bar.
+
+![The StandYouUp stand-up overlay](Media/screenshot.png)
+
+## Features
+
+- **Full-screen stand/sit prompts** on every connected display.
+- **Interactive cycle** — tap *I'm standing up now*, and it reminds you to sit
+  after your chosen stand length; tap *I'm sitting down now* and the cycle
+  repeats.
+- **Working hours** — restrict reminders to per-day shifts (supports split
+  shifts, e.g. mornings and afternoons). Outside your hours it goes quiet.
+- **Escape hatches** — *Snooze 5 min* and an instant *Dismiss (Esc)* so it never
+  traps you during a call.
+- **Chime + system notification** with selectable sound and volume.
+- **Daily rest counter**, **compact menu-bar mode**, and **start at login**.
+- A random Dhammapada verse on each prompt.
+
+## Requirements
+
+- macOS 13 (Ventura) or later.
+- **Xcode Command Line Tools** to build the app (`xcode-select --install`).
+  Full Xcode is only needed to run the unit tests (which use XCTest).
+
+## Build & run
+
+```bash
+git clone https://github.com/rcheesley/standyouup.git
+cd standyouup
+./build.sh
+open StandYouUp.app
+```
+
+The app appears in your menu bar. `build.sh` compiles the SwiftPM executable and
+wraps it into `StandYouUp.app`.
+
+### Gatekeeper note
+
+The build is **ad-hoc signed**, so the first time you open a copy you didn't
+build yourself, macOS may warn it's from an unidentified developer. If you built
+it locally with `build.sh` it runs directly. For a downloaded build, right-click
+the app → **Open** → **Open**. (Notarized release binaries are planned — see
+[CONTRIBUTING.md](CONTRIBUTING.md).)
+
+## Usage
+
+Click the menu-bar icon for:
+
+- **Stand up now** (⌘S) — trigger a stand prompt immediately
+- **Pause / Resume reminders**
+- **Sit for** — 30 / 45 / 60 / 90 minutes
+- **Stand for** — 5 / 10 / 15 / 20 / 30 minutes
+- **Working hours…** — set per-day shifts; if any day has hours, reminders run
+  only during them. Format: `09:00-12:30, 13:30-17:00`. Blank = day off; all
+  days blank = remind all day. Outside your hours the menu bar shows a moon icon.
+- **Sound** / **Volume** — chime selection (or Off) with a *Test sound* item
+- **Compact menu bar (icon only)** — keeps the item narrow on a crowded bar
+- **Start at login**
+- **Quit** (⌘Q)
+
+Preferences persist in `UserDefaults`; a few can be overridden directly:
+
+```bash
+defaults write uk.co.silavapi.StandYouUp sitMinutes 45
+defaults write uk.co.silavapi.StandYouUp standMinutes 15
+```
+
+## Project layout
+
+```
+Package.swift                 SwiftPM manifest
+Sources/
+  StandYouUpCore/             Pure, UI-free logic (schedule parsing) — unit-tested
+  StandYouUp/                 The AppKit menu-bar app
+    main.swift                Entry point
+    AppDelegate.swift         Lifecycle, timers, menu, scheduling
+    Overlay.swift             Full-screen break overlay
+    PreferencesWindow.swift   Working-hours settings window
+    Config.swift              UserDefaults keys & shared constants
+    Verses.swift              Dhammapada verse data
+Tests/StandYouUpCoreTests/    XCTest suite for the core logic
+Resources/AppIcon.icns        App icon (regenerate with Icon/make-icns.sh)
+Icon/                         Icon generator (Swift) + make-icns.sh
+build.sh                      Builds StandYouUp.app
+```
+
+## Tests
+
+```bash
+swift test
+```
+
+(Requires full Xcode for XCTest; runs in CI on every push and PR.)
+
+## Attribution
+
+The on-screen verses are short public-domain renderings of the
+[Dhammapada](https://en.wikipedia.org/wiki/Dhammapada), an ancient Buddhist text.
+
+## Contributing
+
+Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[GPL-3.0-or-later](LICENSE) © Sīlavāpi Cheesley and contributors.
