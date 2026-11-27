@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Working hours now start and stop reminders at the shift boundaries, and a
+  scheduled prompt left on screen when a shift ends is cleared.
+- Reminders no longer fire late, or the moment the lid opens, after the Mac has
+  been asleep. A break of at least your stand length away from the Mac starts a
+  fresh sit period.
+- Shift start times are no longer an hour out on days when the clocks change.
+
 ## [1.0.0]
 
 Initial public release.
