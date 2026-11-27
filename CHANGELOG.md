@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The menu offers "Sit down now" while you're standing and "Stand up now" while
+  you're sitting.
+- The menu's status line and rest count refresh every time the menu opens.
+
 ## [1.0.0]
 
 Initial public release.

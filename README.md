@@ -60,7 +60,8 @@ the app → **Open** → **Open**. (Notarized release binaries are planned — s
 
 Click the menu-bar icon for:
 
-- **Stand up now** (⌘S) — trigger a stand prompt immediately
+- **Stand up now** / **Sit down now** (⌘S) — while sitting, trigger a stand
+  prompt immediately; while standing, sit back down early and restart the cycle
 - **Pause / Resume reminders**
 - **Sit for** — 30 / 45 / 60 / 90 minutes
 - **Stand for** — 5 / 10 / 15 / 20 / 30 minutes
