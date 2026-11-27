@@ -82,9 +82,11 @@ public struct WorkSchedule: Equatable {
             guard let day = calendar.date(byAdding: .day, value: offset, to: base) else { continue }
             let weekday = calendar.component(.weekday, from: day)
             let starts = (shiftsByWeekday[weekday] ?? []).map(\.start).sorted()
-            let dayStart = calendar.startOfDay(for: day)
             for startMinute in starts {
-                if let t = calendar.date(byAdding: .minute, value: startMinute, to: dayStart), t > date {
+                // Set the wall-clock time; adding minutes to midnight is an hour
+                // out on days when the clocks change.
+                if let t = calendar.date(bySettingHour: startMinute / 60, minute: startMinute % 60,
+                                         second: 0, of: day), t > date {
                     return t
                 }
             }

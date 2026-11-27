@@ -12,13 +12,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     var statusItem: NSStatusItem!
 
-    var phaseTimer: Timer?   // fires once when the next prompt is due
-    var tickTimer: Timer?    // refreshes the menu-bar title each second
+    // Once a second: checks whether a prompt or shift change is due, and
+    // refreshes the menu-bar title. Deadlines are compared against the wall
+    // clock here (not left to one long timer) so they survive the Mac sleeping.
+    var tickTimer: Timer?
 
     var mode: Mode = .sitting
     var nextPromptDate: Date?
     var promptActive = false
     var isPaused = false
+    var promptIsManual = false    // the prompt on screen came from the menu, not the schedule
+    var waitingForShift = false   // off the clock, parked until the next shift starts
+    var awaySince: Date?          // set while the Mac or its displays are asleep
 
     var overlayWindows: [NSWindow] = []
 
@@ -43,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         loadSchedule()
         setupStatusItem()
         resumeScheduling()
+        observeSleepAndWake()
         tickTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(tickTimer!, forMode: .common)
     }
@@ -200,7 +206,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if isPaused { return "Paused" }
         if promptActive { return mode == .sitting ? "Time to stand up" : "Time to sit down" }
         if isOffHours {
-            if let next = nextPromptDate { return "Off — next shift \(shiftTimeString(next))" }
+            if let next = workSchedule.nextShiftStart(after: Date()) {
+                return "Off — next shift \(shiftTimeString(next))"
+            }
             return "Off — no working hours set"
         }
         guard let next = nextPromptDate else { return "—" }
@@ -218,21 +226,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if isOffHours { waitForNextShift() } else { beginSitting() }
     }
 
-    /// Park until the next configured shift starts, then resume the cycle.
+    /// Park until the next configured shift starts. `advanceSchedule` restarts
+    /// the cycle when it does.
     private func waitForNextShift() {
-        phaseTimer?.invalidate()
-        promptActive = false
         mode = .sitting
-        guard let start = workSchedule.nextShiftStart(after: Date()) else {
-            nextPromptDate = nil
-            rebuildMenu()
-            return
-        }
-        nextPromptDate = start
-        phaseTimer = Timer.scheduledTimer(withTimeInterval: max(1, start.timeIntervalSinceNow),
-                                          repeats: false) { [weak self] _ in
-            self?.resumeScheduling()
-        }
+        nextPromptDate = nil
+        waitingForShift = true
         rebuildMenu()
     }
 
@@ -247,23 +246,74 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func schedulePrompt(after interval: TimeInterval) {
-        phaseTimer?.invalidate()
         promptActive = false
+        waitingForShift = false
         guard !isPaused else { nextPromptDate = nil; return }
         nextPromptDate = Date().addingTimeInterval(interval)
-        phaseTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
-            self?.firePrompt()
-        }
         rebuildMenu()
     }
 
     private func firePrompt() {
-        // Don't nag outside working hours — wait for the next shift instead.
-        if isOffHours { waitForNextShift(); return }
+        promptIsManual = false
         mode == .sitting ? presentStandPrompt() : presentSitPrompt()
     }
 
+    /// Called every second. Moves the cycle on when a shift starts or ends, or
+    /// when the next prompt is due.
+    private func advanceSchedule() {
+        guard !isPaused, awaySince == nil else { return }
+        if isOffHours {
+            if promptActive {
+                // A prompt you asked for from the menu stays up; a scheduled one
+                // left on screen when the shift ended is cleared.
+                guard !promptIsManual else { return }
+                dismissOverlays()
+                waitForNextShift()
+            } else if !waitingForShift {
+                waitForNextShift()
+            }
+        } else if waitingForShift {
+            beginSitting()   // the shift has started
+        } else if !promptActive, let due = nextPromptDate, Date() >= due {
+            firePrompt()
+        }
+    }
+
+    // MARK: Sleep & wake
+
+    private func observeSleepAndWake() {
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification] {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.userWentAway()
+            }
+        }
+        for name in [NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification] {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.userCameBack()
+            }
+        }
+    }
+
+    private func userWentAway() {
+        if awaySince == nil { awaySince = Date() }
+    }
+
+    /// Time with the Mac or its displays asleep counts as time away from the
+    /// desk. If it was at least a stand-length break, start a fresh sit period.
+    private func userCameBack() {
+        guard let since = awaySince else { return }
+        awaySince = nil
+        guard !isPaused, Date().timeIntervalSince(since) >= standInterval else { return }
+        if promptActive {
+            if mode == .sitting { incrementRestCount() }   // left while asked to stand: a rest
+            dismissOverlays()
+        }
+        resumeScheduling()
+    }
+
     private func tick() {
+        advanceSchedule()
         if isPaused {
             setStatus(symbol: "pause.circle", text: "Paused")
         } else if promptActive {
@@ -279,7 +329,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: Prompts
 
-    @objc private func standNow() { presentStandPrompt() }
+    @objc private func standNow() {
+        promptIsManual = true
+        presentStandPrompt()
+    }
 
     private func presentStandPrompt() {
         chime()
@@ -347,7 +400,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc private func togglePause() {
         isPaused.toggle()
         if isPaused {
-            phaseTimer?.invalidate()
             dismissOverlays()
             nextPromptDate = nil
         } else {
