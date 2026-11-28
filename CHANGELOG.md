@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The break overlay now draws on the whole Dhammapada in Max Müller's public
+  domain translation, with paired verses shown together.
+
 ### Fixed
 - Working hours now start and stop reminders at the shift boundaries, and a
   scheduled prompt left on screen when a shift ends is cleared.
