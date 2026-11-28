@@ -6,6 +6,10 @@ on:
     tags: ["v*"]
   pull_request:
 
+# Jobs get a read-only token unless they ask for more.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test & build
@@ -19,15 +23,24 @@ jobs:
       - name: Run unit tests
         run: swift test
 
-      # Built universal, as releases are, so a break in the Intel build shows up here.
-      - name: Build app bundle
-        run: UNIVERSAL=1 ./build.sh
+      # Built the way releases are (universal, with a disk image), so a break in
+      # either shows up here.
+      - name: Build app bundle and disk image
+        run: UNIVERSAL=1 DMG=1 ./build.sh
 
       - name: Check the app runs on Apple Silicon and Intel
         run: |
           archs="$(lipo -archs StandYouUp.app/Contents/MacOS/StandYouUp)"
           echo "Architectures: ${archs}"
           [[ "${archs}" == *arm64* && "${archs}" == *x86_64* ]]
+
+      - name: Check the disk image holds the app and an Applications shortcut
+        run: |
+          mount="$(mktemp -d)"
+          hdiutil attach "StandYouUp-$(cat VERSION).dmg" -nobrowse -readonly -mountpoint "${mount}"
+          test -d "${mount}/StandYouUp.app"
+          test -L "${mount}/Applications"
+          hdiutil detach "${mount}"
 
   release:
     name: Release
@@ -47,19 +60,18 @@ jobs:
             exit 1
           fi
 
-      - name: Build app bundle
-        run: UNIVERSAL=1 ./build.sh
+      - name: Build app bundle and disk image
+        run: UNIVERSAL=1 DMG=1 ./build.sh
 
       # NOTE: The bundle is currently ad-hoc signed. For friction-free installs,
       # add Developer ID signing + notarization here (import certificate, then
       # `codesign --options runtime` and `xcrun notarytool submit`) using repo
-      # secrets, before zipping.
+      # secrets, before the disk image is built.
 
-      - name: Zip app
-        run: ditto -c -k --keepParent StandYouUp.app StandYouUp.zip
-
+      # Attaches the disk image to the release for this tag, creating the release
+      # if there isn't one yet. Release notes written by hand are left alone.
       - name: Publish release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
-          files: StandYouUp.zip
-          generate_release_notes: true
+          files: StandYouUp-*.dmg
+          fail_on_unmatched_files: true

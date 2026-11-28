@@ -13,7 +13,6 @@ enum Keys {
     static let soundName = "soundName"         // system sound name, or "Off"
     static let soundVolume = "soundVolume"     // 0–100 percent
     static let compactMenuBar = "compactMenuBar"   // icon only, no countdown text
-    static let scheduleEnabled = "scheduleEnabled" // derived: any working hours set
     static let scheduleRaw = "scheduleRaw"     // [weekday(1–7) as String : "HH:MM-HH:MM, …"]
 }
 

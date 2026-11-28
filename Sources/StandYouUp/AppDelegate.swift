@@ -27,6 +27,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     var awaySince: Date?          // set while the Mac or its displays are asleep
 
     var overlayWindows: [NSWindow] = []
+    var promptShownAt: Date?      // when the prompt on screen appeared
+
+    /// False for the first moment after a prompt appears, so a key press or
+    /// click already on its way (Return, mid-typing) can't answer it unseen.
+    private var promptIsSettled: Bool {
+        guard let shown = promptShownAt else { return true }
+        return Date().timeIntervalSince(shown) >= 1.0
+    }
+
+    /// One identifier for every prompt notification, so each replaces the last.
+    private let promptNotificationID = "standyouup.prompt"
+
+    /// UserNotifications needs an app bundle; without one (e.g. `swift run`) it crashes.
+    private var notificationsAvailable: Bool { Bundle.main.bundleIdentifier != nil }
 
     // Working-hours schedule (pure logic lives in StandYouUpCore).
     var workSchedule = WorkSchedule()
@@ -394,7 +408,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     private func presentStandPrompt() {
         chime()
-        notify(title: "Time to stand up 🧍", body: "Step away from the screen for a bit.")
         showOverlay(
             heading: "Time to stand up 🧍",
             subtitle: "Step away from the screen. Tap below once you're on your feet.",
@@ -402,11 +415,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             primaryAction: #selector(confirmStanding),
             secondaryTitle: "Snooze 5 min",
             secondaryAction: #selector(snooze))
+        notify(title: "Time to stand up 🧍", body: "Step away from the screen for a bit.")
     }
 
     private func presentSitPrompt() {
         chime()
-        notify(title: "You can sit down now 🪑", body: "Nicely done — settle back in.")
         showOverlay(
             heading: "You can sit down now 🪑",
             subtitle: "Nicely done. Settle back in whenever you're ready.",
@@ -414,26 +427,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             primaryAction: #selector(confirmSitting),
             secondaryTitle: "Stand 5 more min",
             secondaryAction: #selector(standFiveMore))
+        notify(title: "You can sit down now 🪑", body: "Nicely done — settle back in.")
     }
 
     @objc private func confirmStanding() {
+        guard promptIsSettled else { return }
         incrementRestCount()  // count this as a rest taken today
         dismissOverlays()
         beginStanding()       // wait stand-length, then prompt to sit
     }
 
     @objc private func confirmSitting() {
+        guard promptIsSettled else { return }
         dismissOverlays()
         beginSitting()        // wait sit-length, then prompt to stand
     }
 
     @objc private func snooze() {
+        guard promptIsSettled else { return }
         dismissOverlays()
         mode = .sitting
         schedulePrompt(after: 5 * 60)   // remind me to stand again in 5 min
     }
 
     @objc private func standFiveMore() {
+        guard promptIsSettled else { return }
         dismissOverlays()
         mode = .standing
         schedulePrompt(after: 5 * 60)   // keep standing, remind to sit in 5 min
@@ -450,6 +468,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         for w in overlayWindows { w.orderOut(nil) }
         overlayWindows.removeAll()
         promptActive = false
+        promptShownAt = nil
+        clearPromptNotification()
         NSApp.setActivationPolicy(.accessory)
     }
 
@@ -507,12 +527,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     // MARK: Launch at login
 
     private func isLoginEnabled() -> Bool {
-        if #available(macOS 13.0, *) { return SMAppService.mainApp.status == .enabled }
-        return false
+        SMAppService.mainApp.status == .enabled
     }
 
     @objc private func toggleLogin() {
-        guard #available(macOS 13.0, *) else { return }
         do {
             if SMAppService.mainApp.status == .enabled { try SMAppService.mainApp.unregister() }
             else { try SMAppService.mainApp.register() }
@@ -586,17 +604,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     private func requestNotificationPermission() {
+        guard notificationsAvailable else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
             if let error = error { NSLog("StandYouUp: notification auth error: \(error)") }
         }
     }
 
     private func notify(title: String, body: String) {
+        guard notificationsAvailable else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        let request = UNNotificationRequest(identifier: promptNotificationID, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Takes the prompt's notification out of Notification Centre once the
+    /// prompt has been answered or dismissed.
+    private func clearPromptNotification() {
+        guard notificationsAvailable else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [promptNotificationID])
     }
 
     // MARK: Daily rest count
