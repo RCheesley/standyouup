@@ -116,9 +116,12 @@ extension AppDelegate {
                 byWeekday[day.weekday] = try WorkSchedule.parseShifts(text)
                 raw["\(day.weekday)"] = text
             } catch {
+                // Point at the shift that failed, not the whole field.
+                var problem = text
+                if case ScheduleError.malformed(let segment) = error { problem = segment }
                 let alert = NSAlert()
                 alert.messageText = "Couldn't read the hours for \(day.name)"
-                alert.informativeText = "Use 24-hour times like 09:00-17:00, and separate multiple shifts with commas. Problem near: \"\(text)\""
+                alert.informativeText = "Use 24-hour times like 09:00-17:00, and separate multiple shifts with commas. Problem near: \"\(problem)\""
                 alert.alertStyle = .warning
                 if let win = prefsWindow {
                     alert.beginSheetModal(for: win) { _ in }
@@ -130,7 +133,6 @@ extension AppDelegate {
         }
         workSchedule = WorkSchedule(shiftsByWeekday: byWeekday)
         UserDefaults.standard.set(raw, forKey: Keys.scheduleRaw)
-        UserDefaults.standard.set(workSchedule.isActive, forKey: Keys.scheduleEnabled)
         closePrefs()
         if !isPaused { resumeScheduling() }
         rebuildMenu()
