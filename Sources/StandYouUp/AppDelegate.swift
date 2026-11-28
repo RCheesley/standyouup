@@ -6,7 +6,7 @@ import ServiceManagement
 import UserNotifications
 import StandYouUpCore
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
 
     enum Mode { case sitting, standing }
 
@@ -33,6 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // Preferences window
     var prefsWindow: NSWindow?
     var dayFields: [NSTextField] = []
+
+    // Menu items whose text depends on the moment the menu is opened.
+    var statusMenuItem: NSMenuItem?
+    var restsMenuItem: NSMenuItem?
+    var postureMenuItem: NSMenuItem?
 
     var sitInterval: TimeInterval { TimeInterval(minutes(Keys.sitMinutes, fallback: 60) * 60) }
     var standInterval: TimeInterval { TimeInterval(minutes(Keys.standMinutes, fallback: 15) * 60) }
@@ -107,17 +112,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func rebuildMenu() {
         let menu = NSMenu()
 
-        let status = NSMenuItem(title: statusText(), action: nil, keyEquivalent: "")
+        let status = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         status.isEnabled = false
         menu.addItem(status)
+        statusMenuItem = status
 
-        let rests = NSMenuItem(title: "Rests today: \(restsToday())", action: nil, keyEquivalent: "")
+        let rests = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         rests.isEnabled = false
         menu.addItem(rests)
+        restsMenuItem = rests
 
         menu.addItem(.separator())
 
-        menu.addItem(withTitle: "Stand up now", action: #selector(standNow), keyEquivalent: "s").target = self
+        let posture = NSMenuItem(title: "", action: nil, keyEquivalent: "s")
+        posture.target = self
+        menu.addItem(posture)
+        postureMenuItem = posture
         menu.addItem(withTitle: isPaused ? "Resume reminders" : "Pause reminders",
                      action: #selector(togglePause), keyEquivalent: "").target = self
 
@@ -184,7 +194,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit StandYouUp", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
+        menu.delegate = self
+        refreshLiveMenuItems()
         statusItem.menu = menu
+    }
+
+    /// Called just before the menu opens, so the countdown, rest count and the
+    /// stand/sit item are never stale.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        refreshLiveMenuItems()
+    }
+
+    private func refreshLiveMenuItems() {
+        statusMenuItem?.title = statusText()
+        restsMenuItem?.title = "Rests today: \(restsToday())"
+        // Offer the opposite of what you're doing now.
+        if mode == .standing {
+            postureMenuItem?.title = "Sit down now"
+            postureMenuItem?.action = #selector(sitNow)
+        } else {
+            postureMenuItem?.title = "Stand up now"
+            postureMenuItem?.action = #selector(standNow)
+        }
     }
 
     private func addPresetSubmenu(to menu: NSMenu, title: String, key: String, fallback: Int,
@@ -417,6 +448,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc private func setStand(_ sender: NSMenuItem) {
         UserDefaults.standard.set(sender.tag, forKey: Keys.standMinutes)
         if !isPaused && !promptActive && mode == .standing && !isOffHours { schedulePrompt(after: standInterval) }
+        rebuildMenu()
+    }
+
+    /// Sitting back down early: clear any prompt and start a fresh sit period.
+    @objc private func sitNow() {
+        dismissOverlays()
+        beginSitting()
         rebuildMenu()
     }
 
