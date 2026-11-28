@@ -6,11 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The break overlay now uses Sangharakshita's translation of the Dhammapada in
+  place of Max Müller's.
+
 ## [1.0.1] - 2026-11-28
 
 ### Changed
-- The break overlay now draws on the whole Dhammapada in Sangharakshita's
-  translation, with paired verses shown together.
+- The break overlay now draws on the whole Dhammapada in Max Müller's public
+  domain translation, with paired verses shown together.
 
 ### Fixed
 - Working hours now start and stop reminders at the shift boundaries, and a
