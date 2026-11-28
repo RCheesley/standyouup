@@ -48,6 +48,9 @@ open StandYouUp.app
 The app appears in your menu bar. `build.sh` compiles the SwiftPM executable and
 wraps it into `StandYouUp.app`.
 
+A plain build targets the Mac you're on. Release downloads are universal (Apple
+Silicon and Intel), built with `UNIVERSAL=1 ./build.sh`, which needs full Xcode.
+
 ### Gatekeeper note
 
 The build is **ad-hoc signed**, so the first time you open a copy you didn't
@@ -109,8 +112,10 @@ swift test
 
 ## Attribution
 
-The on-screen verses are short public-domain renderings of the
+The on-screen verses are from F. Max Müller's translation of the
 [Dhammapada](https://en.wikipedia.org/wiki/Dhammapada), an ancient Buddhist text.
+The translation was first published in 1881 and is in the public domain. The
+text was taken from the [Project Gutenberg edition](https://www.gutenberg.org/ebooks/2017).
 
 ## Contributing
 
