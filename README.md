@@ -108,8 +108,10 @@ swift test
 
 ## Attribution
 
-The on-screen verses are short public-domain renderings of the
-[Dhammapada](https://en.wikipedia.org/wiki/Dhammapada), an ancient Buddhist text.
+The on-screen verses are from *Dhammapada: The Way of Truth*, translated from
+the Pāli by Sangharakshita (Windhorse Publications, 2001), © Sangharakshita 2001.
+The [Dhammapada](https://en.wikipedia.org/wiki/Dhammapada) is an ancient Buddhist
+text. The translation can be read in full at [dhammapada.at](https://dhammapada.at/).
 
 ## Contributing
 
