@@ -65,7 +65,8 @@ Click the menu-bar icon for:
 
 - **Stand up now** / **Sit down now** (⌘S) — while sitting, trigger a stand
   prompt immediately; while standing, sit back down early and restart the cycle
-- **Pause / Resume reminders**
+- **Pause reminders** — for 30 minutes, 1 hour, 2 hours, until tomorrow, or until
+  you resume them yourself
 - **Sit for** — 30 / 45 / 60 / 90 minutes
 - **Stand for** — 5 / 10 / 15 / 20 / 30 minutes
 - **Working hours…** — set per-day shifts; if any day has hours, reminders run

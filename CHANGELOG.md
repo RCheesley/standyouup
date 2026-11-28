@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- "Pause reminders" now offers timed pauses (30 minutes, 1 hour, 2 hours or
+  until tomorrow) that end by themselves, as well as the open-ended pause.
 - The menu offers "Sit down now" while you're standing and "Stand up now" while
   you're sitting.
 - The menu's status line and rest count refresh every time the menu opens.

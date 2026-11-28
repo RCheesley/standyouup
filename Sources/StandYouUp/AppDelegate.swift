@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     var nextPromptDate: Date?
     var promptActive = false
     var isPaused = false
+    var pauseUntil: Date?         // when a timed pause ends; nil means until resumed by hand
     var promptIsManual = false    // the prompt on screen came from the menu, not the schedule
     var waitingForShift = false   // off the clock, parked until the next shift starts
     var awaySince: Date?          // set while the Mac or its displays are asleep
@@ -128,8 +129,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         posture.target = self
         menu.addItem(posture)
         postureMenuItem = posture
-        menu.addItem(withTitle: isPaused ? "Resume reminders" : "Pause reminders",
-                     action: #selector(togglePause), keyEquivalent: "").target = self
+        if isPaused {
+            menu.addItem(withTitle: "Resume reminders",
+                         action: #selector(togglePause), keyEquivalent: "").target = self
+        } else {
+            let pauseParent = NSMenuItem(title: "Pause reminders", action: nil, keyEquivalent: "")
+            let pauseMenu = NSMenu()
+            for (title, mins) in [("For 30 minutes", 30), ("For 1 hour", 60), ("For 2 hours", 120)] {
+                let it = NSMenuItem(title: title, action: #selector(pauseFor(_:)), keyEquivalent: "")
+                it.target = self
+                it.tag = mins
+                pauseMenu.addItem(it)
+            }
+            let tomorrow = NSMenuItem(title: "Until tomorrow", action: #selector(pauseUntilTomorrow), keyEquivalent: "")
+            tomorrow.target = self
+            pauseMenu.addItem(tomorrow)
+            pauseMenu.addItem(.separator())
+            let open = NSMenuItem(title: "Until I resume", action: #selector(togglePause), keyEquivalent: "")
+            open.target = self
+            pauseMenu.addItem(open)
+            pauseParent.submenu = pauseMenu
+            menu.addItem(pauseParent)
+        }
 
         menu.addItem(.separator())
 
@@ -234,7 +255,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     private func statusText() -> String {
-        if isPaused { return "Paused" }
+        if isPaused {
+            guard let until = pauseUntil else { return "Paused" }
+            // A pause to midnight reads better as "tomorrow" than as "tomorrow 00:00".
+            if Calendar.current.startOfDay(for: until) == until { return "Paused until tomorrow" }
+            return "Paused until \(shiftTimeString(until))"
+        }
         if promptActive { return mode == .sitting ? "Time to stand up" : "Time to sit down" }
         if isOffHours {
             if let next = workSchedule.nextShiftStart(after: Date()) {
@@ -292,6 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     /// Called every second. Moves the cycle on when a shift starts or ends, or
     /// when the next prompt is due.
     private func advanceSchedule() {
+        if isPaused, let until = pauseUntil, Date() >= until { resumeReminders() }   // a timed pause has run out
         guard !isPaused, awaySince == nil else { return }
         if isOffHours {
             if promptActive {
@@ -428,15 +455,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     // MARK: Menu actions
 
-    @objc private func togglePause() {
-        isPaused.toggle()
-        if isPaused {
-            dismissOverlays()
-            nextPromptDate = nil
-        } else {
-            resumeScheduling()
-        }
+    /// Pauses reminders until `date`, or until resumed by hand when `date` is nil.
+    private func pause(until date: Date?) {
+        isPaused = true
+        pauseUntil = date
+        dismissOverlays()
+        nextPromptDate = nil
         rebuildMenu()
+    }
+
+    private func resumeReminders() {
+        isPaused = false
+        pauseUntil = nil
+        resumeScheduling()
+        rebuildMenu()
+    }
+
+    @objc private func togglePause() {
+        if isPaused { resumeReminders() } else { pause(until: nil) }
+    }
+
+    @objc private func pauseFor(_ sender: NSMenuItem) {
+        pause(until: Date().addingTimeInterval(TimeInterval(sender.tag * 60)))
+    }
+
+    @objc private func pauseUntilTomorrow() {
+        let cal = Calendar.current
+        let startOfToday = cal.startOfDay(for: Date())
+        pause(until: cal.date(byAdding: .day, value: 1, to: startOfToday))
     }
 
     @objc private func setSit(_ sender: NSMenuItem) {
