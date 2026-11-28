@@ -16,6 +16,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Working hours can now run past midnight (`22:00-06:00`) or end at `24:00`.
 - The menu's status line and rest count refresh every time the menu opens.
 
+### Fixed
+- A key press or click in the first second after a prompt appears no longer
+  answers it before you've seen it.
+- Prompt notifications no longer pile up in Notification Centre.
+
 ## [1.0.1] - 2026-11-28
 
 ### Changed

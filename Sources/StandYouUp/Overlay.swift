@@ -17,6 +17,7 @@ extension AppDelegate {
                      secondaryTitle: String, secondaryAction: Selector) {
         dismissOverlays()
         promptActive = true
+        promptShownAt = Date()
         let verse = randomVerse()
         for screen in NSScreen.screens {
             overlayWindows.append(makeOverlay(on: screen, verse: verse,
