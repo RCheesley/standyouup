@@ -55,14 +55,17 @@ extension AppDelegate {
         let head = label(heading, size: 44, weight: .bold, color: .white)
         let sub = label(subtitle, size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.7))
 
-        let quote = label("\u{201C}\(verse.text)\u{201D}", size: 24, weight: .light,
+        // Grouped verses can run long, so step the size down to keep them on screen.
+        // No added quotation marks: many verses carry their own.
+        let length = verse.text.count
+        let quoteSize: CGFloat = length > 420 ? 18 : (length > 240 ? 21 : 24)
+        let quote = label(verse.text, size: quoteSize, weight: .light,
                           color: NSColor.white.withAlphaComponent(0.92))
-        quote.font = NSFont.systemFont(ofSize: 24, weight: .light)
         quote.maximumNumberOfLines = 0
         quote.preferredMaxLayoutWidth = min(760, screen.frame.width - 200)
         quote.lineBreakMode = .byWordWrapping
 
-        let ref = label("— \(verse.ref)", size: 15, weight: .medium,
+        let ref = label("— \(verse.ref), translated by \(verseTranslator)", size: 15, weight: .medium,
                         color: NSColor.white.withAlphaComponent(0.45))
 
         let primary = makeButton(primaryTitle, action: primaryAction, prominent: true)
