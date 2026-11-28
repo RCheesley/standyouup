@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-28
+
 ### Changed
 - The break overlay now draws on the whole Dhammapada in Max Müller's public
   domain translation, with paired verses shown together.
@@ -33,5 +35,6 @@ Initial public release.
 - Daily rest counter, compact menu-bar mode, and start-at-login.
 - Random Dhammapada verse on each prompt.
 
-[Unreleased]: https://github.com/rcheesley/standyouup/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/rcheesley/standyouup/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/rcheesley/standyouup/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/rcheesley/standyouup/releases/tag/v1.0.0
