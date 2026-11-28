@@ -103,10 +103,11 @@ defaults write uk.co.silavapi.StandYouUp standMinutes 15
 ```
 Package.swift                 SwiftPM manifest
 Sources/
-  StandYouUpCore/             Pure, UI-free logic (schedule parsing) — unit-tested
+  StandYouUpCore/             Pure, UI-free logic (working hours, the sit/stand
+                              cycle) — unit-tested
   StandYouUp/                 The AppKit menu-bar app
     main.swift                Entry point
-    AppDelegate.swift         Lifecycle, timers, menu, scheduling
+    AppDelegate.swift         Lifecycle, menu, and carrying out what the cycle asks
     Overlay.swift             Full-screen break overlay
     PreferencesWindow.swift   Working-hours settings window
     Config.swift              UserDefaults keys & shared constants

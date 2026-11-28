@@ -8,8 +8,6 @@ import StandYouUpCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
 
-    enum Mode { case sitting, standing }
-
     var statusItem: NSStatusItem!
 
     // Once a second: checks whether a prompt or shift change is due, and
@@ -17,24 +15,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     // clock here (not left to one long timer) so they survive the Mac sleeping.
     var tickTimer: Timer?
 
-    var mode: Mode = .sitting
-    var nextPromptDate: Date?
-    var promptActive = false
-    var isPaused = false
-    var pauseUntil: Date?         // when a timed pause ends; nil means until resumed by hand
-    var promptIsManual = false    // the prompt on screen came from the menu, not the schedule
-    var waitingForShift = false   // off the clock, parked until the next shift starts
-    var awaySince: Date?          // set while the Mac or its displays are asleep
+    /// The sit/stand cycle itself: what phase we're in, when the next prompt is
+    /// due, pauses, working hours and sleep. The logic lives in StandYouUpCore,
+    /// where it is unit-tested; this class draws what it says.
+    var cycle = ReminderCycle(sitInterval: 60 * 60, standInterval: 15 * 60)
+
+    // Read-only views of the cycle, for the menu, the overlay and the settings window.
+    var mode: ReminderCycle.Mode { cycle.mode }
+    var nextPromptDate: Date? { cycle.nextPromptDate }
+    var promptActive: Bool { cycle.promptActive }
+    var isPaused: Bool { cycle.isPaused }
+    var pauseUntil: Date? { cycle.pauseUntil }
 
     var overlayWindows: [NSWindow] = []
-    var promptShownAt: Date?      // when the prompt on screen appeared
-
-    /// False for the first moment after a prompt appears, so a key press or
-    /// click already on its way (Return, mid-typing) can't answer it unseen.
-    private var promptIsSettled: Bool {
-        guard let shown = promptShownAt else { return true }
-        return Date().timeIntervalSince(shown) >= 1.0
-    }
 
     /// One identifier for every prompt notification, so each replaces the last.
     private let promptNotificationID = "standyouup.prompt"
@@ -42,8 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     /// UserNotifications needs an app bundle; without one (e.g. `swift run`) it crashes.
     private var notificationsAvailable: Bool { Bundle.main.bundleIdentifier != nil }
 
-    // Working-hours schedule (pure logic lives in StandYouUpCore).
-    var workSchedule = WorkSchedule()
+    // Working-hours schedule, held by the cycle.
+    var workSchedule: WorkSchedule {
+        get { cycle.schedule }
+        set { cycle.schedule = newValue }
+    }
 
     // Preferences window
     var prefsWindow: NSWindow?
@@ -58,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     var standInterval: TimeInterval { TimeInterval(minutes(Keys.standMinutes, fallback: 15) * 60) }
 
     /// True when a schedule is set and we're currently off the clock.
-    var isOffHours: Bool { workSchedule.isActive && !workSchedule.isWorking(at: Date()) }
+    var isOffHours: Bool { cycle.isOffHours(at: Date()) }
 
     // MARK: Lifecycle
 
@@ -290,65 +286,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     // MARK: Phase scheduling
 
-    /// Entry point for (re)starting reminders. If we're off the clock, wait for
-    /// the next shift instead of nagging.
-    func resumeScheduling() {
-        guard !isPaused else { return }
-        if isOffHours { waitForNextShift() } else { beginSitting() }
-    }
-
-    /// Park until the next configured shift starts. `advanceSchedule` restarts
-    /// the cycle when it does.
-    private func waitForNextShift() {
-        mode = .sitting
-        nextPromptDate = nil
-        waitingForShift = true
-        rebuildMenu()
-    }
-
-    private func beginSitting() {
-        mode = .sitting
-        schedulePrompt(after: sitInterval)
-    }
-
-    private func beginStanding() {
-        mode = .standing
-        schedulePrompt(after: standInterval)
-    }
-
-    private func schedulePrompt(after interval: TimeInterval) {
-        promptActive = false
-        waitingForShift = false
-        guard !isPaused else { nextPromptDate = nil; return }
-        nextPromptDate = Date().addingTimeInterval(interval)
-        rebuildMenu()
-    }
-
-    private func firePrompt() {
-        promptIsManual = false
-        mode == .sitting ? presentStandPrompt() : presentSitPrompt()
-    }
-
-    /// Called every second. Moves the cycle on when a shift starts or ends, or
-    /// when the next prompt is due.
-    private func advanceSchedule() {
-        if isPaused, let until = pauseUntil, Date() >= until { resumeReminders() }   // a timed pause has run out
-        guard !isPaused, awaySince == nil else { return }
-        if isOffHours {
-            if promptActive {
-                // A prompt you asked for from the menu stays up; a scheduled one
-                // left on screen when the shift ended is cleared.
-                guard !promptIsManual else { return }
-                dismissOverlays()
-                waitForNextShift()
-            } else if !waitingForShift {
-                waitForNextShift()
+    /// Runs one step of the cycle with the current settings and time, carries
+    /// out what it asks for, and refreshes the menu if anything changed.
+    private func drive(_ step: (inout ReminderCycle, Date) -> [ReminderCycle.Effect]) {
+        cycle.sitInterval = sitInterval
+        cycle.standInterval = standInterval
+        let before = cycle
+        let effects = step(&cycle, Date())
+        for effect in effects {
+            switch effect {
+            case .countRest: incrementRestCount()
+            case .dismissPrompt: dismissOverlays()
+            case .showStandPrompt: presentStandPrompt()
+            case .showSitPrompt: presentSitPrompt()
             }
-        } else if waitingForShift {
-            beginSitting()   // the shift has started
-        } else if !promptActive, let due = nextPromptDate, Date() >= due {
-            firePrompt()
         }
+        if cycle != before || !effects.isEmpty { rebuildMenu() }
+    }
+
+    /// Entry point for (re)starting reminders. If we're off the clock, the cycle
+    /// waits for the next shift instead of nagging.
+    func resumeScheduling() {
+        drive { cycle, now in cycle.start(now: now); return [] }
     }
 
     // MARK: Sleep & wake
@@ -368,24 +327,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     private func userWentAway() {
-        if awaySince == nil { awaySince = Date() }
+        drive { cycle, now in cycle.wentAway(now: now); return [] }
     }
 
     /// Time with the Mac or its displays asleep counts as time away from the
     /// desk. If it was at least a stand-length break, start a fresh sit period.
     private func userCameBack() {
-        guard let since = awaySince else { return }
-        awaySince = nil
-        guard !isPaused, Date().timeIntervalSince(since) >= standInterval else { return }
-        if promptActive {
-            if mode == .sitting { incrementRestCount() }   // left while asked to stand: a rest
-            dismissOverlays()
-        }
-        resumeScheduling()
+        drive { cycle, now in cycle.cameBack(now: now) }
     }
 
     private func tick() {
-        advanceSchedule()
+        drive { cycle, now in cycle.tick(now: now) }
         if isPaused {
             setStatus(symbol: "pause.circle", text: "Paused")
         } else if promptActive {
@@ -402,8 +354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     // MARK: Prompts
 
     @objc private func standNow() {
-        promptIsManual = true
-        presentStandPrompt()
+        drive { cycle, now in cycle.standNow(now: now) }
     }
 
     private func presentStandPrompt() {
@@ -431,44 +382,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     @objc private func confirmStanding() {
-        guard promptIsSettled else { return }
-        incrementRestCount()  // count this as a rest taken today
-        dismissOverlays()
-        beginStanding()       // wait stand-length, then prompt to sit
+        drive { cycle, now in cycle.confirmStanding(now: now) }   // counts a rest, then stand-length until the sit prompt
     }
 
     @objc private func confirmSitting() {
-        guard promptIsSettled else { return }
-        dismissOverlays()
-        beginSitting()        // wait sit-length, then prompt to stand
+        drive { cycle, now in cycle.confirmSitting(now: now) }    // sit-length until the next stand prompt
     }
 
     @objc private func snooze() {
-        guard promptIsSettled else { return }
-        dismissOverlays()
-        mode = .sitting
-        schedulePrompt(after: 5 * 60)   // remind me to stand again in 5 min
+        drive { cycle, now in cycle.snooze(now: now) }            // remind me to stand again in 5 min
     }
 
     @objc private func standFiveMore() {
-        guard promptIsSettled else { return }
-        dismissOverlays()
-        mode = .standing
-        schedulePrompt(after: 5 * 60)   // keep standing, remind to sit in 5 min
+        drive { cycle, now in cycle.standFiveMore(now: now) }     // keep standing, remind to sit in 5 min
     }
 
     /// Emergency out: clear the overlay instantly and don't nag again until the
     /// next normal interval for the current posture (so it won't reappear mid-call).
     @objc func dismissPrompt() {
-        dismissOverlays()
-        schedulePrompt(after: mode == .sitting ? sitInterval : standInterval)
+        drive { cycle, now in cycle.dismiss(now: now) }
     }
 
+    /// Takes the overlay off every screen. The cycle decides when; this only
+    /// tidies up the windows and the notification.
     func dismissOverlays() {
         for w in overlayWindows { w.orderOut(nil) }
         overlayWindows.removeAll()
-        promptActive = false
-        promptShownAt = nil
         clearPromptNotification()
         NSApp.setActivationPolicy(.accessory)
     }
@@ -477,18 +416,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     /// Pauses reminders until `date`, or until resumed by hand when `date` is nil.
     private func pause(until date: Date?) {
-        isPaused = true
-        pauseUntil = date
-        dismissOverlays()
-        nextPromptDate = nil
-        rebuildMenu()
+        drive { cycle, now in cycle.pause(until: date, now: now) }
     }
 
     private func resumeReminders() {
-        isPaused = false
-        pauseUntil = nil
-        resumeScheduling()
-        rebuildMenu()
+        drive { cycle, now in cycle.resume(now: now); return [] }
     }
 
     @objc private func togglePause() {
@@ -507,21 +439,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     @objc private func setSit(_ sender: NSMenuItem) {
         UserDefaults.standard.set(sender.tag, forKey: Keys.sitMinutes)
-        if !isPaused && !promptActive && mode == .sitting && !isOffHours { schedulePrompt(after: sitInterval) }
+        drive { cycle, now in cycle.restartCountdownIfIdle(in: .sitting, now: now); return [] }
         rebuildMenu()
     }
 
     @objc private func setStand(_ sender: NSMenuItem) {
         UserDefaults.standard.set(sender.tag, forKey: Keys.standMinutes)
-        if !isPaused && !promptActive && mode == .standing && !isOffHours { schedulePrompt(after: standInterval) }
+        drive { cycle, now in cycle.restartCountdownIfIdle(in: .standing, now: now); return [] }
         rebuildMenu()
     }
 
     /// Sitting back down early: clear any prompt and start a fresh sit period.
     @objc private func sitNow() {
-        dismissOverlays()
-        beginSitting()
-        rebuildMenu()
+        drive { cycle, now in cycle.sitNow(now: now) }
     }
 
     // MARK: Launch at login
