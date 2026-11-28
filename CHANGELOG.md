@@ -17,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   been asleep. A break of at least your stand length away from the Mac starts a
   fresh sit period.
 - Shift start times are no longer an hour out on days when the clocks change.
+- Release downloads now run on Intel Macs as well as Apple Silicon.
 
 ## [1.0.0]
 

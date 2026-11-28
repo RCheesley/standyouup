@@ -19,8 +19,15 @@ jobs:
       - name: Run unit tests
         run: swift test
 
+      # Built universal, as releases are, so a break in the Intel build shows up here.
       - name: Build app bundle
-        run: ./build.sh
+        run: UNIVERSAL=1 ./build.sh
+
+      - name: Check the app runs on Apple Silicon and Intel
+        run: |
+          archs="$(lipo -archs StandYouUp.app/Contents/MacOS/StandYouUp)"
+          echo "Architectures: ${archs}"
+          [[ "${archs}" == *arm64* && "${archs}" == *x86_64* ]]
 
   release:
     name: Release
@@ -32,8 +39,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Check the tag matches VERSION
+        run: |
+          version="$(cat VERSION)"
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION (${version}). Update VERSION and tag again."
+            exit 1
+          fi
+
       - name: Build app bundle
-        run: ./build.sh
+        run: UNIVERSAL=1 ./build.sh
 
       # NOTE: The bundle is currently ad-hoc signed. For friction-free installs,
       # add Developer ID signing + notarization here (import certificate, then

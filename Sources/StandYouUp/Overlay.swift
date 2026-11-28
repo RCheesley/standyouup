@@ -56,9 +56,10 @@ extension AppDelegate {
         let sub = label(subtitle, size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.7))
 
         // Grouped verses can run long, so step the size down to keep them on screen.
+        // No added quotation marks: many verses carry their own.
         let length = verse.text.count
         let quoteSize: CGFloat = length > 420 ? 18 : (length > 240 ? 21 : 24)
-        let quote = label("\u{201C}\(verse.text)\u{201D}", size: quoteSize, weight: .light,
+        let quote = label(verse.text, size: quoteSize, weight: .light,
                           color: NSColor.white.withAlphaComponent(0.92))
         quote.maximumNumberOfLines = 0
         quote.preferredMaxLayoutWidth = min(760, screen.frame.width - 200)
