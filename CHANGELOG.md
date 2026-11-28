@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-28
+
 ### Added
 - Releases now come as a disk image (`StandYouUp-<version>.dmg`) that you open
   and drag to your Applications folder.
@@ -52,6 +54,7 @@ Initial public release.
 - Daily rest counter, compact menu-bar mode, and start-at-login.
 - Random Dhammapada verse on each prompt.
 
-[Unreleased]: https://github.com/rcheesley/standyouup/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/rcheesley/standyouup/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/rcheesley/standyouup/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/rcheesley/standyouup/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/rcheesley/standyouup/releases/tag/v1.0.0
