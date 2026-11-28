@@ -6,14 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The menu offers "Sit down now" while you're standing and "Stand up now" while
+  you're sitting.
+- The menu's status line and rest count refresh every time the menu opens.
+
 ## [1.0.1] - 2026-11-28
 
 ### Changed
 - The break overlay now draws on the whole Dhammapada in Max Müller's public
   domain translation, with paired verses shown together.
-- The menu offers "Sit down now" while you're standing and "Stand up now" while
-  you're sitting.
-- The menu's status line and rest count refresh every time the menu opens.
 
 ### Fixed
 - Working hours now start and stop reminders at the shift boundaries, and a
