@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The break overlay now uses Sangharakshita's translation of the Dhammapada in
+  place of Max Müller's.
+
 ## [1.1.0] - 2026-11-28
 
 ### Added

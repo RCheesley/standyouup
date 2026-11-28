@@ -128,10 +128,10 @@ swift test
 
 ## Attribution
 
-The on-screen verses are from F. Max Müller's translation of the
-[Dhammapada](https://en.wikipedia.org/wiki/Dhammapada), an ancient Buddhist text.
-The translation was first published in 1881 and is in the public domain. The
-text was taken from the [Project Gutenberg edition](https://www.gutenberg.org/ebooks/2017).
+The on-screen verses are from *Dhammapada: The Way of Truth*, translated from
+the Pāli by Sangharakshita (Windhorse Publications, 2001), © Sangharakshita 2001.
+The [Dhammapada](https://en.wikipedia.org/wiki/Dhammapada) is an ancient Buddhist
+text. The translation can be read in full at [dhammapada.at](https://dhammapada.at/).
 
 ## Contributing
 
