@@ -6,9 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Releases now come as a disk image (`StandYouUp-<version>.dmg`) that you open
+  and drag to your Applications folder.
+
 ### Changed
 - The menu offers "Sit down now" while you're standing and "Stand up now" while
   you're sitting.
+- Working hours can now run past midnight (`22:00-06:00`) or end at `24:00`.
 - The menu's status line and rest count refresh every time the menu opens.
 
 ### Fixed
@@ -31,7 +36,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Shift start times are no longer an hour out on days when the clocks change.
 - Release downloads now run on Intel Macs as well as Apple Silicon.
 
-## [1.0.0]
+## [1.0.0] - 2026-08-12
 
 Initial public release.
 

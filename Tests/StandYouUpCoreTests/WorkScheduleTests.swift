@@ -23,6 +23,9 @@ final class WorkScheduleTests: XCTestCase {
         XCTAssertEqual(WorkSchedule.parseTime("00:00"), 0)
         XCTAssertEqual(WorkSchedule.parseTime("23:59"), 1439)
         XCTAssertNil(WorkSchedule.parseTime("24:00"))
+        XCTAssertEqual(WorkSchedule.parseTime("24:00", allowEndOfDay: true), 1440)
+        XCTAssertNil(WorkSchedule.parseTime("24:01", allowEndOfDay: true))
+        XCTAssertNil(WorkSchedule.parseTime("25:00", allowEndOfDay: true))
         XCTAssertNil(WorkSchedule.parseTime("09:60"))
         XCTAssertNil(WorkSchedule.parseTime("9"))
         XCTAssertNil(WorkSchedule.parseTime("nine"))
@@ -36,7 +39,12 @@ final class WorkScheduleTests: XCTestCase {
         XCTAssertEqual(try WorkSchedule.parseShifts("09:00-12:30, 13:30-17:00"),
                        [.init(start: 540, end: 750), .init(start: 810, end: 1020)])
         XCTAssertThrowsError(try WorkSchedule.parseShifts("09:00"))       // missing end
-        XCTAssertThrowsError(try WorkSchedule.parseShifts("17:00-09:00")) // end before start
+        XCTAssertEqual(try WorkSchedule.parseShifts("18:00-24:00"),
+                       [.init(start: 1080, end: 1440)])                   // up to midnight
+        XCTAssertEqual(try WorkSchedule.parseShifts("22:00-06:00"),
+                       [.init(start: 1320, end: 1800)])                   // runs into the next day
+        XCTAssertThrowsError(try WorkSchedule.parseShifts("09:00-09:00")) // no length
+        XCTAssertThrowsError(try WorkSchedule.parseShifts("24:00-06:00")) // 24:00 is only an end time
         XCTAssertThrowsError(try WorkSchedule.parseShifts("9-5"))         // not HH:MM
     }
 
@@ -72,6 +80,37 @@ final class WorkScheduleTests: XCTestCase {
                        date(2026, 8, 11, 9, 0))                                    // → next day
         XCTAssertEqual(s.nextShiftStart(after: date(2026, 8, 11, 17, 30), calendar: cal),
                        date(2026, 8, 17, 9, 0))                                    // → next Monday
+    }
+
+    // Monday (weekday 2) 22:00 to 06:00 the next morning, and nothing on Tuesday.
+    func testOvernightShift() throws {
+        let s = WorkSchedule(shiftsByWeekday: [2: try WorkSchedule.parseShifts("22:00-06:00")])
+        // 2026-08-10 is a Monday.
+        XCTAssertFalse(s.isWorking(at: date(2026, 8, 10, 21, 59), calendar: cal))
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 10, 22, 0), calendar: cal))
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 10, 23, 59), calendar: cal))
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 11, 0, 0), calendar: cal))    // Tuesday, still Monday's shift
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 11, 5, 59), calendar: cal))
+        XCTAssertFalse(s.isWorking(at: date(2026, 8, 11, 6, 0), calendar: cal))   // end exclusive
+        XCTAssertFalse(s.isWorking(at: date(2026, 8, 10, 3, 0), calendar: cal))   // Monday's small hours: no Sunday shift
+        XCTAssertFalse(s.isWorking(at: date(2026, 8, 11, 23, 0), calendar: cal))  // Tuesday evening: no Tuesday shift
+        XCTAssertEqual(s.nextShiftStart(after: date(2026, 8, 11, 3, 0), calendar: cal),
+                       date(2026, 8, 17, 22, 0))                                  // → next Monday evening
+    }
+
+    // Saturday (weekday 7) night runs into Sunday (weekday 1).
+    func testOvernightShiftAcrossTheWeekBoundary() throws {
+        let s = WorkSchedule(shiftsByWeekday: [7: try WorkSchedule.parseShifts("20:00-02:00")])
+        // 2026-08-15 is a Saturday, 2026-08-16 a Sunday.
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 15, 23, 0), calendar: cal))
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 16, 1, 30), calendar: cal))
+        XCTAssertFalse(s.isWorking(at: date(2026, 8, 16, 2, 0), calendar: cal))
+    }
+
+    func testShiftEndingAtMidnight() throws {
+        let s = WorkSchedule(shiftsByWeekday: [2: try WorkSchedule.parseShifts("18:00-24:00")])
+        XCTAssertTrue(s.isWorking(at: date(2026, 8, 10, 23, 59), calendar: cal))
+        XCTAssertFalse(s.isWorking(at: date(2026, 8, 11, 0, 0), calendar: cal))
     }
 
     func testNextShiftStartAtMidnight() throws {

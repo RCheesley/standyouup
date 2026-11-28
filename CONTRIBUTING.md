@@ -51,13 +51,22 @@ open StandYouUp.app
 
 ## Releases & distribution
 
-Releases are **source-first** today: users clone and run `build.sh`, which
-ad-hoc signs the app.
+Each release publishes `StandYouUp-<version>.dmg`, a universal (Apple Silicon and
+Intel) build in a disk image. The app is ad-hoc signed, so macOS asks people to
+allow it in System Settings the first time they open it.
 
-We plan to offer **notarized binary releases** so non-developers can download and
-run without Gatekeeper friction. That needs an Apple Developer ID for signing +
-notarization; the `release` job in `.github/workflows/ci.yml` is scaffolded for
-this and can be switched on once signing secrets are configured.
+To cut a release:
+
+1. Bump `VERSION` and move the "Unreleased" entries in `CHANGELOG.md` under the
+   new version, in a pull request.
+2. Once that is merged, publish a GitHub release with a new tag `v<version>` on
+   `main` and your release notes. The tag must match `VERSION`.
+3. The `release` job in `.github/workflows/ci.yml` builds the disk image and
+   attaches it to that release.
+
+Signing and notarizing with an Apple Developer ID, so the app opens with a plain
+double-click, is tracked in
+[#28](https://github.com/rcheesley/standyouup/issues/28).
 
 ## License
 
