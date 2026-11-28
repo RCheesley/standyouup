@@ -4,6 +4,9 @@
 #
 # Set UNIVERSAL=1 to build for both Apple Silicon and Intel (needs full Xcode).
 # Releases are built this way; a plain build targets the Mac you're on.
+#
+# Set DMG=1 to also wrap the app in StandYouUp-<version>.dmg, a disk image with
+# a shortcut to the Applications folder for drag-to-install.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -56,7 +59,18 @@ ${ICON_LINE}
 PLIST
 
 echo "==> Ad-hoc code-signing..."
-codesign --force --deep --sign - "${APP}" 2>/dev/null || echo "    (codesign skipped)"
+codesign --force --deep --sign - "${APP}"
+
+if [ "${DMG:-0}" = "1" ]; then
+    DMG_NAME="StandYouUp-${VERSION}.dmg"
+    echo "==> Building ${DMG_NAME}..."
+    STAGE="$(mktemp -d)"
+    cp -R "${APP}" "${STAGE}/"
+    ln -s /Applications "${STAGE}/Applications"
+    rm -f "${DMG_NAME}"
+    hdiutil create -volname "StandYouUp" -srcfolder "${STAGE}" -ov -format UDZO "${DMG_NAME}"
+    rm -rf "${STAGE}"
+fi
 
 echo "OK: Built ${APP} (v${VERSION}) for: $(lipo -archs "${APP}/Contents/MacOS/${BIN_NAME}")"
 echo

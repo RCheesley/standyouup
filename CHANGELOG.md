@@ -6,12 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-28
+
+### Added
+- Releases now come as a disk image (`StandYouUp-<version>.dmg`) that you open
+  and drag to your Applications folder.
+
 ### Changed
+- "Pause reminders" now offers timed pauses (30 minutes, 1 hour, 2 hours or
+  until tomorrow) that end by themselves, as well as the open-ended pause.
 - The menu offers "Sit down now" while you're standing and "Stand up now" while
   you're sitting.
+- Working hours can now run past midnight (`22:00-06:00`) or end at `24:00`.
 - The menu's status line and rest count refresh every time the menu opens.
 - The break overlay now uses Sangharakshita's translation of the Dhammapada in
   place of Max Müller's.
+
+### Fixed
+- A key press or click in the first second after a prompt appears no longer
+  answers it before you've seen it.
+- Prompt notifications no longer pile up in Notification Centre.
 
 ## [1.0.1] - 2026-11-28
 
@@ -28,7 +42,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Shift start times are no longer an hour out on days when the clocks change.
 - Release downloads now run on Intel Macs as well as Apple Silicon.
 
-## [1.0.0]
+## [1.0.0] - 2026-08-12
 
 Initial public release.
 
@@ -42,6 +56,7 @@ Initial public release.
 - Daily rest counter, compact menu-bar mode, and start-at-login.
 - Random Dhammapada verse on each prompt.
 
-[Unreleased]: https://github.com/rcheesley/standyouup/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/rcheesley/standyouup/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/rcheesley/standyouup/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/rcheesley/standyouup/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/rcheesley/standyouup/releases/tag/v1.0.0

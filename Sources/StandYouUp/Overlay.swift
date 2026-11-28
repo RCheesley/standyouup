@@ -15,8 +15,7 @@ extension AppDelegate {
     func showOverlay(heading: String, subtitle: String,
                      primaryTitle: String, primaryAction: Selector,
                      secondaryTitle: String, secondaryAction: Selector) {
-        dismissOverlays()
-        promptActive = true
+        dismissOverlays()   // take down any overlay already showing
         let verse = randomVerse()
         for screen in NSScreen.screens {
             overlayWindows.append(makeOverlay(on: screen, verse: verse,

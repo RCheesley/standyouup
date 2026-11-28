@@ -36,7 +36,21 @@ No Dock icon, no window clutter — it lives quietly in the menu bar.
 - **Xcode Command Line Tools** to build the app (`xcode-select --install`).
   Full Xcode is only needed to run the unit tests (which use XCTest).
 
-## Build & run
+## Install
+
+1. Download `StandYouUp-<version>.dmg` from the
+   [latest release](https://github.com/rcheesley/standyouup/releases/latest).
+   (Not "Source code", which is a copy of this repository.)
+2. Open it and drag **StandYouUp** onto the **Applications** folder.
+3. Open StandYouUp from Applications. macOS will block it the first time, as the
+   app isn't notarized yet. Click **Done**, then open **System Settings**, go to
+   **Privacy & Security**, scroll down and click **Open Anyway** next to
+   StandYouUp. You only need to do this once.
+
+Run the app from Applications before turning on **Start at login**, so macOS
+remembers the right copy.
+
+## Build from source
 
 ```bash
 git clone https://github.com/rcheesley/standyouup.git
@@ -51,13 +65,11 @@ wraps it into `StandYouUp.app`.
 A plain build targets the Mac you're on. Release downloads are universal (Apple
 Silicon and Intel), built with `UNIVERSAL=1 ./build.sh`, which needs full Xcode.
 
-### Gatekeeper note
+An app you build yourself runs directly. Copy it to your Applications folder if
+you want to use **Start at login**, as `build.sh` replaces the app in this folder
+on every build.
 
-The build is **ad-hoc signed**, so the first time you open a copy you didn't
-build yourself, macOS may warn it's from an unidentified developer. If you built
-it locally with `build.sh` it runs directly. For a downloaded build, right-click
-the app → **Open** → **Open**. (Notarized release binaries are planned — see
-[CONTRIBUTING.md](CONTRIBUTING.md).)
+`DMG=1 ./build.sh` also wraps the app in a `StandYouUp-<version>.dmg` disk image.
 
 ## Usage
 
@@ -65,12 +77,15 @@ Click the menu-bar icon for:
 
 - **Stand up now** / **Sit down now** (⌘S) — while sitting, trigger a stand
   prompt immediately; while standing, sit back down early and restart the cycle
-- **Pause / Resume reminders**
+- **Pause reminders** — for 30 minutes, 1 hour, 2 hours, until tomorrow, or until
+  you resume them yourself
 - **Sit for** — 30 / 45 / 60 / 90 minutes
 - **Stand for** — 5 / 10 / 15 / 20 / 30 minutes
 - **Working hours…** — set per-day shifts; if any day has hours, reminders run
   only during them. Format: `09:00-12:30, 13:30-17:00`. Blank = day off; all
-  days blank = remind all day. Outside your hours the menu bar shows a moon icon.
+  days blank = remind all day. A shift can end at `24:00`, and one that ends
+  earlier than it starts (`22:00-06:00`) runs into the next day. Outside your
+  hours the menu bar shows a moon icon.
 - **Sound** / **Volume** — chime selection (or Off) with a *Test sound* item
 - **Compact menu bar (icon only)** — keeps the item narrow on a crowded bar
 - **Start at login**
@@ -88,10 +103,11 @@ defaults write uk.co.silavapi.StandYouUp standMinutes 15
 ```
 Package.swift                 SwiftPM manifest
 Sources/
-  StandYouUpCore/             Pure, UI-free logic (schedule parsing) — unit-tested
+  StandYouUpCore/             Pure, UI-free logic (working hours, the sit/stand
+                              cycle) — unit-tested
   StandYouUp/                 The AppKit menu-bar app
     main.swift                Entry point
-    AppDelegate.swift         Lifecycle, timers, menu, scheduling
+    AppDelegate.swift         Lifecycle, menu, and carrying out what the cycle asks
     Overlay.swift             Full-screen break overlay
     PreferencesWindow.swift   Working-hours settings window
     Config.swift              UserDefaults keys & shared constants
