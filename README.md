@@ -36,7 +36,21 @@ No Dock icon, no window clutter — it lives quietly in the menu bar.
 - **Xcode Command Line Tools** to build the app (`xcode-select --install`).
   Full Xcode is only needed to run the unit tests (which use XCTest).
 
-## Build & run
+## Install
+
+1. Download `StandYouUp-<version>.dmg` from the
+   [latest release](https://github.com/rcheesley/standyouup/releases/latest).
+   (Not "Source code", which is a copy of this repository.)
+2. Open it and drag **StandYouUp** onto the **Applications** folder.
+3. Open StandYouUp from Applications. macOS will block it the first time, as the
+   app isn't notarized yet. Click **Done**, then open **System Settings**, go to
+   **Privacy & Security**, scroll down and click **Open Anyway** next to
+   StandYouUp. You only need to do this once.
+
+Run the app from Applications before turning on **Start at login**, so macOS
+remembers the right copy.
+
+## Build from source
 
 ```bash
 git clone https://github.com/rcheesley/standyouup.git
@@ -51,13 +65,11 @@ wraps it into `StandYouUp.app`.
 A plain build targets the Mac you're on. Release downloads are universal (Apple
 Silicon and Intel), built with `UNIVERSAL=1 ./build.sh`, which needs full Xcode.
 
-### Gatekeeper note
+An app you build yourself runs directly. Copy it to your Applications folder if
+you want to use **Start at login**, as `build.sh` replaces the app in this folder
+on every build.
 
-The build is **ad-hoc signed**, so the first time you open a copy you didn't
-build yourself, macOS may warn it's from an unidentified developer. If you built
-it locally with `build.sh` it runs directly. For a downloaded build, right-click
-the app → **Open** → **Open**. (Notarized release binaries are planned — see
-[CONTRIBUTING.md](CONTRIBUTING.md).)
+`DMG=1 ./build.sh` also wraps the app in a `StandYouUp-<version>.dmg` disk image.
 
 ## Usage
 
