@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Releases now come as a disk image (`StandYouUp-<version>.dmg`) that you open
+  and drag to your Applications folder.
+
 ### Changed
 - The menu offers "Sit down now" while you're standing and "Stand up now" while
   you're sitting.
