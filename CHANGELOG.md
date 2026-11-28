@@ -11,6 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and drag to your Applications folder.
 
 ### Changed
+- "Pause reminders" now offers timed pauses (30 minutes, 1 hour, 2 hours or
+  until tomorrow) that end by themselves, as well as the open-ended pause.
 - The menu offers "Sit down now" while you're standing and "Stand up now" while
   you're sitting.
 - Working hours can now run past midnight (`22:00-06:00`) or end at `24:00`.
