@@ -70,7 +70,9 @@ Click the menu-bar icon for:
 - **Stand for** — 5 / 10 / 15 / 20 / 30 minutes
 - **Working hours…** — set per-day shifts; if any day has hours, reminders run
   only during them. Format: `09:00-12:30, 13:30-17:00`. Blank = day off; all
-  days blank = remind all day. Outside your hours the menu bar shows a moon icon.
+  days blank = remind all day. A shift can end at `24:00`, and one that ends
+  earlier than it starts (`22:00-06:00`) runs into the next day. Outside your
+  hours the menu bar shows a moon icon.
 - **Sound** / **Volume** — chime selection (or Off) with a *Test sound* item
 - **Compact menu bar (icon only)** — keeps the item narrow on a crowded bar
 - **Start at login**
