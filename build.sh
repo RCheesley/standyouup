@@ -1,6 +1,9 @@
 #!/bin/bash
 # Builds StandYouUp.app from the SwiftPM executable target.
 # Requires the Xcode Command Line Tools (no full Xcode needed).
+#
+# Set UNIVERSAL=1 to build for both Apple Silicon and Intel (needs full Xcode).
+# Releases are built this way; a plain build targets the Mac you're on.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -10,10 +13,16 @@ BIN_NAME="StandYouUp"
 BUNDLE_ID="uk.co.silavapi.StandYouUp"
 VERSION="$(cat VERSION)"
 
-echo "==> Building StandYouUp (swift build -c release)..."
-swift build -c release --product "${BIN_NAME}"
+ARCH_FLAGS=""
+if [ "${UNIVERSAL:-0}" = "1" ]; then
+    ARCH_FLAGS="--arch arm64 --arch x86_64"
+fi
 
-BIN_PATH="$(swift build -c release --product "${BIN_NAME}" --show-bin-path)/${BIN_NAME}"
+echo "==> Building StandYouUp (swift build -c release ${ARCH_FLAGS})..."
+# ARCH_FLAGS is deliberately unquoted so it splits into separate arguments.
+swift build -c release ${ARCH_FLAGS} --product "${BIN_NAME}"
+
+BIN_PATH="$(swift build -c release ${ARCH_FLAGS} --product "${BIN_NAME}" --show-bin-path)/${BIN_NAME}"
 
 echo "==> Assembling ${APP}..."
 rm -rf "${APP}"
@@ -49,7 +58,7 @@ PLIST
 echo "==> Ad-hoc code-signing..."
 codesign --force --deep --sign - "${APP}" 2>/dev/null || echo "    (codesign skipped)"
 
-echo "OK: Built ${APP} (v${VERSION})"
+echo "OK: Built ${APP} (v${VERSION}) for: $(lipo -archs "${APP}/Contents/MacOS/${BIN_NAME}")"
 echo
 echo "Run it with:   open \"$(pwd)/${APP}\""
 echo "It appears in the menu bar (no Dock icon)."

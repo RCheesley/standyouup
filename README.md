@@ -48,6 +48,9 @@ open StandYouUp.app
 The app appears in your menu bar. `build.sh` compiles the SwiftPM executable and
 wraps it into `StandYouUp.app`.
 
+A plain build targets the Mac you're on. Release downloads are universal (Apple
+Silicon and Intel), built with `UNIVERSAL=1 ./build.sh`, which needs full Xcode.
+
 ### Gatekeeper note
 
 The build is **ad-hoc signed**, so the first time you open a copy you didn't
