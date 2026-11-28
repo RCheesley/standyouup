@@ -16,7 +16,7 @@ extension AppDelegate {
     }
 
     private func buildPrefsWindow() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 470),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 490),
                               styleMask: [.titled, .closable],
                               backing: .buffered, defer: false)
         window.title = "StandYouUp — Working Hours"
@@ -38,7 +38,7 @@ extension AppDelegate {
         root.addArrangedSubview(intro)
 
         let hint = NSTextField(wrappingLabelWithString:
-            "For each day, enter one or more time ranges in 24-hour format, separated by commas. Leave a day blank for a day off.\nExample:  09:00-12:30, 13:30-17:00")
+            "For each day, enter one or more time ranges in 24-hour format, separated by commas. Leave a day blank for a day off. A shift that ends earlier than it starts runs into the next day.\nExamples:  09:00-12:30, 13:30-17:00    22:00-06:00")
         hint.font = NSFont.systemFont(ofSize: 11)
         hint.textColor = .secondaryLabelColor
         hint.preferredMaxLayoutWidth = 430
